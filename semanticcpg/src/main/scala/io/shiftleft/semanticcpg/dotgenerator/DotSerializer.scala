@@ -36,16 +36,35 @@ object DotSerializer {
     sb.append(s"""digraph "$name" {  \n""")
   }
 
+
+  // Gets a location string for this node, delimited by ":"
+  // Some nodes are missing some fields, so do your best to get a useful string
+  implicit class StoredNodeWithLocationString(node: StoredNode) {
+    // This type of node can be turned into a location string line:column:length
+    type PartiallyLocationizable = StoredNode with HasLineNumber with HasColumnNumber with HasCode
+    // This type of node can be turned into a location string line:column:lineend:columnend
+    type FullyLocationizable = PartiallyLocationizable with HasLineNumberEnd with HasColumnNumberEnd
+
+    def getLocationString(): String = {
+      node match {
+        case node: FullyLocationizable => List(node.lineNumber, node.columnNumber, node.lineNumberEnd, node.columnNumber).flatten.mkString(":")
+        case node: PartiallyLocationizable => (List(node.lineNumber, node.columnNumber).flatten ++ List(node.code.length())).mkString(":")
+        case _ => ""
+      }
+    }
+  }
+
+
   private def stringRepr(vertex: StoredNode): String = {
     escape(
       vertex match {
-        case call: Call               => (call.name, call.code).toString
-        case expr: Expression         => (expr.label, expr.code, toCfgNode(expr).code).toString
-        case method: Method           => (method.label, method.name).toString
-        case ret: MethodReturn        => (ret.label, ret.typeFullName).toString
-        case param: MethodParameterIn => ("PARAM", param.code).toString
-        case local: Local             => (local.label, s"${local.code}: ${local.typeFullName}").toString
-        case target: JumpTarget       => (target.label, target.name).toString
+        case call: Call               => (call.name, call.code, call.getLocationString()).toString
+        case expr: Expression         => (expr.label, expr.code, toCfgNode(expr).code, expr.getLocationString()).toString
+        case method: Method           => (method.label, method.name, method.getLocationString()).toString
+        case ret: MethodReturn        => (ret.label, ret.typeFullName, ret.getLocationString()).toString
+        case param: MethodParameterIn => ("PARAM", param.code, param.getLocationString()).toString
+        case local: Local             => (local.label, s"${local.code}: ${local.typeFullName}", local.getLocationString()).toString
+        case target: JumpTarget       => (target.label, target.name, target.getLocationString()).toString
         case _                        => ""
       }
     )
