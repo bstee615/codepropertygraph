@@ -29,7 +29,7 @@ class DotAstGeneratorTests extends FuzzyCCodeToCpgSuite {
       cpg.method.name("my_func").dotAst.l match {
         case x :: _ =>
           x.startsWith("digraph \"my_func\"") shouldBe true
-          x.contains("""[label = "(CONTROL_STRUCTURE,if (y > 42),if (y > 42))" ]""") shouldBe true
+          x.contains("""[label = "(CONTROL_STRUCTURE,if (y > 42),if (y > 42),5:2:11)" ]""") shouldBe true
           x.endsWith("}\n") shouldBe true
         case _ => fail()
       }
